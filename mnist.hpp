@@ -77,7 +77,11 @@ class MNIST {
             for (size_t h = pad_; h < 28 + pad_; ++h) {
                 for (size_t w = pad_; w < 28 + pad_; ++w) {
                     int val = (int)(img(0, 0, h, w) * 255.f);
-                    std::cout << (val > 0 ? "x" : " ");
+                    // use ANSI escape codes for colored terminal output
+                    // https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters
+                    std::cout << "\033[48;5;" << 255 - val / 12 << "m \033[0m";
+                    // text only
+                    //std::cout << (val > 0 ? "x" : " ");
                 }
                 std::cout << std::endl;
             }
