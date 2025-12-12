@@ -11,8 +11,12 @@ class Tensor {
         Tensor(size_t n) : Tensor(n, 1, 1, 1) {}
         Tensor(size_t n, size_t c) : Tensor(n, c, 1, 1) {}
         Tensor(size_t n, size_t c, size_t h) : Tensor(n, c, h, 1) {}
+
         Tensor(size_t n, size_t c, size_t h, size_t w) :
-            N(n), C(c), H(h), W(w), offset_(0), data_(std::make_shared<std::vector<float>>(n * c * h * w)) {}
+            N(n), C(c), H(h), W(w),     // simply store the shape inside the object
+            offset_(0),                 // initial offset is zero
+            data_(std::make_shared<std::vector<float>>(n * c * h * w)) {} // allocate memory
+
         Tensor(size_t n, size_t c, size_t h, size_t w, size_t offset, std::shared_ptr<std::vector<float>> data) :
             N(n), C(c), H(h), W(w), offset_(offset), data_(data) {}
 
@@ -29,14 +33,13 @@ class Tensor {
         }
 
         float& operator()(size_t n, size_t c=0, size_t h=0, size_t w=0) {
-            // TODO
-            // define the data layout for the Tensor
-            // access the Tensor element
+            size_t index = offset_ + (((n * C + c) * H + h) * W + w);
+            return (*data_)[index];
         }
 
         Tensor slice(size_t idx, size_t num) {
             size_t offset = offset_ + idx * C * H * W;
-            return Tensor(num, C, H, W, offset, data_);
+            return Tensor(num, C, H, W, offset, data_);  // offset_ allows slicing without copying memory
         }
 
         std::ostream &write(std::ostream &os) const {
