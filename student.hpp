@@ -3,7 +3,7 @@
 
 #include <string>
 
-const std::string student_name = "first_name last_name";
-const int student_id = 0;
+const std::string student_name = "kavin kumar manielayaperumal";
+const int student_id = 157687;
 
 #endif // STUDENT_HPP
