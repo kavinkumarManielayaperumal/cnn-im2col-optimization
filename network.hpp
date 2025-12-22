@@ -36,6 +36,16 @@ class Layer {
         virtual void fwd() = 0;
         virtual void read_weights_bias(std::ifstream& is) = 0;
 
+        void set_input(const Tensor& input) {
+            input_ = input;
+        }
+
+        }
+        Tensor get_output() const {
+            return output_;
+        }
+
+
         void print() {
             std::cout << layer_type_ << std::endl;
             if (!input_.empty())   std::cout << "  input: "   << input_   << std::endl;
@@ -43,7 +53,7 @@ class Layer {
             if (!bias_.empty())    std::cout << "  bias: "    << bias_    << std::endl;
             if (!output_.empty())  std::cout << "  output: "  << output_  << std::endl;
         }
-        // TODO: additional required methods
+        
 
     protected:
         const LayerType layer_type_;
