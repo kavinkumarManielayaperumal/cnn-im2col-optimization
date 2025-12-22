@@ -150,9 +150,24 @@ class MaxPool2d : public Layer {
 
 
 class ReLu : public Layer {
-    public:
-        ReLu() : Layer(LayerType::ReLu) {}
-    // TODO
+public:
+    ReLu() : Layer(LayerType::ReLu) {}
+
+    void fwd() override {
+        // Output has same shape as input
+        output_ = Tensor(input_.N, input_.C, input_.H, input_.W);
+
+        for (size_t n = 0; n < input_.N; ++n) {
+            for (size_t c = 0; c < input_.C; ++c) {
+                for (size_t h = 0; h < input_.H; ++h) {
+                    for (size_t w = 0; w < input_.W; ++w) {
+                        output_(n, c, h, w) =
+                            std::max(0.0f, input_(n, c, h, w));
+                    }
+                }
+            }
+        }
+    }
 };
 
 
