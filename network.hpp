@@ -136,10 +136,39 @@ protected:  // expect derived classes to access these members
 
 
 class Linear : public Layer {
-    public:
-        Linear(size_t in_features, size_t out_features) : Layer(LayerType::Linear) {}
-    // TODO
+public:
+    Linear(size_t in_features, size_t out_features)   //after convolution layer we have fully connected layer
+        : Layer(LayerType::Linear),
+          in_features_(in_features),
+          out_features_(out_features)
+          
+    {
+        weights_ = Tensor(out_features_, in_features_);
+        bias_    = Tensor(out_features_);
+    }
+    void fwd() override {
+        size_t N = input_.N;
+        output_ = Tensor(N, out_features_, 1, 1);
+
+        for (size_t n = 0; n < N; ++n) {
+            for (size_t o = 0; o < out_features_; ++o) {
+                float sum = bias_(o);
+                for (size_t i = 0; i < in_features_; ++i) {
+                    sum += input_(n, i, 0, 0) * weights_(o, i);
+                }
+
+                output_(n, o, 0, 0) = sum;
+            }
+        }
+    }
+
+
+protected:
+    size_t in_features_;
+    size_t out_features_;
+    
 };
+
 
 
 class MaxPool2d : public Layer {
