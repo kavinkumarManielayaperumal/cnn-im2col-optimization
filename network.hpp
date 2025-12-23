@@ -143,10 +143,69 @@ class Linear : public Layer {
 
 
 class MaxPool2d : public Layer {
-    public:
-        MaxPool2d(size_t kernel_size, size_t stride=1, size_t pad=0) : Layer(LayerType::MaxPool2d) {}
-    // TODO
+public:
+    MaxPool2d(size_t kernel_size,
+              size_t stride = 1,
+              size_t pad = 0)
+        : Layer(LayerType::MaxPool2d),
+          kernel_size_(kernel_size),
+          stride_(stride),
+          pad_(pad) {}
+
+    void fwd() override {
+        // input dimensions
+        size_t N = input_.N;
+        size_t C = input_.C;
+        size_t Hin = input_.H;
+        size_t Win = input_.W;
+
+        size_t k = kernel_size_;
+
+        // output dimensions
+        size_t Hout = (Hin + 2 * pad_ - k) / stride_ + 1;
+        size_t Wout = (Win + 2 * pad_ - k) / stride_ + 1;
+
+        // Output tensor
+        output_ = Tensor(N, C, Hout, Wout);
+
+        // Max pooling
+        for (size_t n = 0; n < N; ++n) {
+            for (size_t c = 0; c < C; ++c) {
+                for (size_t oh = 0; oh < Hout; ++oh) {
+                    for (size_t ow = 0; ow < Wout; ++ow) {
+
+                        float max_val = -std::numeric_limits<float>::infinity();
+
+                        for (size_t kh = 0; kh < k; ++kh) {
+                            for (size_t kw = 0; kw < k; ++kw) {
+
+                                int ih = static_cast<int>(oh * stride_ + kh) - pad_;
+                                int iw = static_cast<int>(ow * stride_ + kw) - pad_;
+
+                                if (ih >= 0 && ih < static_cast<int>(Hin) &&
+                                    iw >= 0 && iw < static_cast<int>(Win)) {
+
+                                    max_val = std::max(
+                                        max_val,
+                                        input_(n, c, ih, iw)
+                                    );
+                                }
+                            }
+                        }
+
+                        output_(n, c, oh, ow) = max_val;
+                    }
+                }
+            }
+        }
+    }
+
+protected:
+    size_t kernel_size_;
+    size_t stride_;
+    size_t pad_;
 };
+
 
 
 class ReLu : public Layer {
