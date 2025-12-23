@@ -238,10 +238,34 @@ class SoftMax : public Layer {
 
 
 class Flatten : public Layer {
-    public:
-        Flatten() : Layer(LayerType::Flatten) {}
-    // TODO
+public:
+    Flatten() : Layer(LayerType::Flatten) {}
+
+    void fwd() override {
+        size_t N = input_.N;
+        size_t C = input_.C;
+        size_t H = input_.H;
+        size_t W = input_.W;
+
+        size_t features = C * H * W;
+
+        // Output shape: (N, features, 1, 1)
+        output_ = Tensor(N, features, 1, 1);
+
+        for (size_t n = 0; n < N; ++n) {
+            size_t idx = 0;
+            for (size_t c = 0; c < C; ++c) {
+                for (size_t h = 0; h < H; ++h) {
+                    for (size_t w = 0; w < W; ++w) {
+                        output_(n, idx, 0, 0) = input_(n, c, h, w);
+                        ++idx;
+                    }
+                }
+            }
+        }
+    }
 };
+
 
 
 class NeuralNetwork {
