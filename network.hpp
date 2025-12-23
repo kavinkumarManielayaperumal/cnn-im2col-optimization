@@ -259,11 +259,39 @@ public:
 };
 
 
+
 class SoftMax : public Layer {
-    public:
-        SoftMax() : Layer(LayerType::SoftMax) {}
-    // TODO
+public:
+    SoftMax() : Layer(LayerType::SoftMax) {}
+
+    void fwd() override {
+        // Output has same shape as input
+        output_ = Tensor(input_.N, input_.C, input_.H, input_.W);
+
+        for (size_t n = 0; n < input_.N; ++n) {
+
+            // find max logit (for numerical stability)
+            float max_val = -std::numeric_limits<float>::infinity();
+            for (size_t c = 0; c < input_.C; ++c) {
+                max_val = std::max(max_val, input_(n, c, 0, 0));
+            }
+
+            // compute exp(x - max) and sum
+            float sum_exp = 0.0f;
+            for (size_t c = 0; c < input_.C; ++c) {
+                float e = std::exp(input_(n, c, 0, 0) - max_val);
+                output_(n, c, 0, 0) = e;
+                sum_exp += e;
+            }
+
+            // normalize
+            for (size_t c = 0; c < input_.C; ++c) {
+                output_(n, c, 0, 0) /= sum_exp;
+            }
+        }
+    }
 };
+
 
 
 class Flatten : public Layer {
