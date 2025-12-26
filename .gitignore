@@ -1,0 +1,27 @@
+
+build/
+bin/
+*.o
+*.out
+
+.vscode/
+
+
+*.gch
+
+
+DATA/
+lenet
+*.o
+*.out
+*.gch
+
+
+
+
+*.log
+*.tmp
+
+# OS junk
+.DS_Store
+Thumbs.db

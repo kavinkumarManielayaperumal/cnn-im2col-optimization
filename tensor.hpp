@@ -33,7 +33,7 @@ class Tensor {
         }
 
         float& operator()(size_t n, size_t c=0, size_t h=0, size_t w=0) {
-            size_t index = offset_ + (((n * C + c) * H + h) * W + w);
+            size_t index = offset_ + (((n * C + c) * H + h) * W + w); // calculate the memory index 
             return (*data_)[index];
         }
 

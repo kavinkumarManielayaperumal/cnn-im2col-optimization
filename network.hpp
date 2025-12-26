@@ -7,6 +7,9 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <limits>
+#include <cmath>
+
 
 enum class LayerType : uint8_t {
     Conv2d = 0,
@@ -33,14 +36,15 @@ class Layer {
     public:
         Layer(LayerType layer_type) : layer_type_(layer_type), input_(), weights_(), bias_(), output_() {}
 
+        virtual ~Layer() = default;
+
         virtual void fwd() = 0;
-        virtual void read_weights_bias(std::ifstream& is) = 0;
+        virtual void read_weights_bias(std::ifstream& is) {};
 
         void set_input(const Tensor& input) {
             input_ = input;
         }
 
-        }
         Tensor get_output() const {
             return output_;
         }
@@ -81,6 +85,21 @@ public:
         weights_ = Tensor(out_channels_, in_channels_, kernel_size_, kernel_size_);
         bias_    = Tensor(out_channels_);
     }
+
+    void read_weights_bias(std::ifstream& is) override {
+    size_t wcount =
+        weights_.N * weights_.C * weights_.H * weights_.W;
+
+    size_t bcount =
+        bias_.N * bias_.C * bias_.H * bias_.W;
+
+    is.read(reinterpret_cast<char*>(weights_.data()),
+            wcount * sizeof(float));
+
+    is.read(reinterpret_cast<char*>(bias_.data()),
+            bcount * sizeof(float));
+    }
+
     // override the forward method
     void fwd() override {
         size_t N = input_.N;
@@ -101,7 +120,7 @@ public:
                 for (size_t oh = 0; oh < Hout; ++oh) {
                     for (size_t ow = 0; ow < Wout; ++ow) {
 
-                        float sum = bias_(oc);
+                        float sum = bias_(oc,0,0,0);
 
                         for (size_t ic = 0; ic < Cin; ++ic) {
                             for (size_t kh = 0; kh < k; ++kh) {
@@ -146,13 +165,30 @@ public:
         weights_ = Tensor(out_features_, in_features_);
         bias_    = Tensor(out_features_);
     }
+
+
+    void read_weights_bias(std::ifstream& is) override {
+        size_t wcount =
+            weights_.N * weights_.C * weights_.H * weights_.W;
+
+        size_t bcount =
+            bias_.N * bias_.C * bias_.H * bias_.W;
+
+        is.read(reinterpret_cast<char*>(weights_.data()),
+                wcount * sizeof(float));
+
+        is.read(reinterpret_cast<char*>(bias_.data()),
+                bcount * sizeof(float));
+    }
+
+
     void fwd() override {
         size_t N = input_.N;
         output_ = Tensor(N, out_features_, 1, 1);
 
         for (size_t n = 0; n < N; ++n) {
             for (size_t o = 0; o < out_features_; ++o) {
-                float sum = bias_(o);
+                float sum = bias_(o, 0, 0, 0);
                 for (size_t i = 0; i < in_features_; ++i) {
                     sum += input_(n, i, 0, 0) * weights_(o, i);
                 }
@@ -256,6 +292,7 @@ public:
             }
         }
     }
+
 };
 
 
@@ -275,6 +312,13 @@ public:
             for (size_t c = 0; c < input_.C; ++c) {
                 max_val = std::max(max_val, input_(n, c, 0, 0));
             }
+
+            std::cout << "[SoftMax] logits: ";
+            for (size_t c = 0; c < input_.C; ++c) {
+                std::cout << input_(n, c, 0, 0) << " ";
+            }
+            std::cout << std::endl;
+
 
             // compute exp(x - max) and sum
             float sum_exp = 0.0f;
@@ -328,6 +372,13 @@ public:
 class NeuralNetwork {
     public:
         NeuralNetwork(bool debug=false) : debug_(debug) {}
+
+
+        ~NeuralNetwork() {
+            for (auto& l : layers_) {
+                delete l;
+            }
+        }
 
         void add(Layer* layer) {
             layers_.push_back(layer);
