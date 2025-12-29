@@ -114,34 +114,70 @@ public:
 
         output_ = Tensor(N, out_channels_, Hout, Wout);
 
-        // Perform convolution
+        // Perform convolution with im2col approach 
+        const size_t k=Cin*k*k;                 // kernel size flattened
+        const size_t HW=Hout*Wout;             // nnumber of sliding windows
+
+        // Reshape kernels
+        Tensor Wmat(out_channels_, k, 1, 1); // (out_channels, Cin*k*k, 1, 1)
+        for (size_t oc = 0; oc < out_channels_; ++oc) {
+            size_t idx = 0;
+            for (size_t ic = 0; ic < Cin; ++ic) {
+                for (size_t kh = 0; kh < k; ++kh) {
+                    for (size_t kw = 0; kw < k; ++kw) {
+                        Wmat(oc, idx++, 0, 0) = weights_(oc, ic, kh, kw);
+                    }
+                }
+            }
+        }
+
+        // Process each batch element
         for (size_t n = 0; n < N; ++n) {
-            for (size_t oc = 0; oc < out_channels_; ++oc) {
-                for (size_t oh = 0; oh < Hout; ++oh) {
-                    for (size_t ow = 0; ow < Wout; ++ow) {
 
-                        float sum = bias_(oc,0,0,0);
+            //im2col buffer
+            Tensor col(1, k, HW, 1); // (1, Cin*k*k, Hout*Wout, 1)
 
-                        for (size_t ic = 0; ic < Cin; ++ic) {
-                            for (size_t kh = 0; kh < k; ++kh) {
-                                for (size_t kw = 0; kw < k; ++kw) {
+            size_t col_idx = 0;
+            for (size_t oh = 0; oh < Hout; ++oh) {
+                for (size_t ow = 0; ow < Wout; ++ow) {
 
-                                    int ih = oh * stride_ + kh - pad_;
-                                    int iw = ow * stride_ + kw - pad_;
+                    size_t row=0;
+                    for (size_t ic = 0; ic < Cin; ++ic) {
+                        for (size_t kh = 0; kh < k; ++kh) {
+                            for (size_t kw = 0; kw < k; ++kw) {
+                                int ih = static_cast<int>(oh * stride_ + kh) - pad_;
+                                int iw = static_cast<int>(ow * stride_ + kw) - pad_;
 
-                                    if (ih >= 0 && ih < Hin && iw >= 0 && iw < Win) {
-                                        sum += input_(n, ic, ih, iw) * weights_(oc, ic, kh, kw);
-                                    }
+                                float val = 0.0f;
+                                if (ih >= 0 && ih < static_cast<int>(Hin) &&
+                                    iw >= 0 && iw < static_cast<int>(Win)) {
+                                    val = input_(n, ic, ih, iw);
                                 }
+                                col(0, row++, col_idx, 0) = val;
                             }
                         }
-                        output_(n, oc, oh, ow) = sum;
                     }
+                    ++col_idx;
+                }
+            }           
+
+            // Matrix multiplication Wmat * col
+            for (size_t oc = 0; oc < out_channels_; ++oc) {
+                for (size_t hw = 0; hw < HW; ++hw) {
+                    float sum =bias_(oc, 0, 0, 0); // start with bias
+                    for (size_t r = 0; r < k; ++r) {
+                        sum += Wmat(oc, r, 0, 0) * col(0, r, hw, 0);
+                    }
+                    size_t oh = hw / Wout;
+                    size_t ow = hw - oh * Wout;
+                    output_(n, oc, oh, ow) = sum;
                 }
             }
         }
     }
 
+
+ 
 
 protected:  // expect derived classes to access these members
     size_t in_channels_;
