@@ -115,11 +115,11 @@ public:
         output_ = Tensor(N, out_channels_, Hout, Wout);
 
         // Perform convolution with im2col approach 
-        const size_t k=Cin*k*k;                 // kernel size flattened
+        const size_t K=Cin*k*k;                 // kernel size flattened
         const size_t HW=Hout*Wout;             // nnumber of sliding windows
 
         // Reshape kernels
-        Tensor Wmat(out_channels_, k, 1, 1); // (out_channels, Cin*k*k, 1, 1)
+        Tensor Wmat(out_channels_, K, 1, 1); // (out_channels, Cin*k*k, 1, 1)
         for (size_t oc = 0; oc < out_channels_; ++oc) {
             size_t idx = 0;
             for (size_t ic = 0; ic < Cin; ++ic) {
@@ -135,7 +135,7 @@ public:
         for (size_t n = 0; n < N; ++n) {
 
             //im2col buffer
-            Tensor col(1, k, HW, 1); // (1, Cin*k*k, Hout*Wout, 1)
+            Tensor col(1, K, HW, 1); // (1, Cin*k*k, Hout*Wout, 1)
 
             size_t col_idx = 0;
             for (size_t oh = 0; oh < Hout; ++oh) {
@@ -165,7 +165,7 @@ public:
             for (size_t oc = 0; oc < out_channels_; ++oc) {
                 for (size_t hw = 0; hw < HW; ++hw) {
                     float sum =bias_(oc, 0, 0, 0); // start with bias
-                    for (size_t r = 0; r < k; ++r) {
+                    for (size_t r = 0; r < K; ++r) {
                         sum += Wmat(oc, r, 0, 0) * col(0, r, hw, 0);
                     }
                     size_t oh = hw / Wout;

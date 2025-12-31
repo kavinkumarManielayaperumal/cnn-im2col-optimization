@@ -1,0 +1,37 @@
+In Task 2, the convolution implementation from Task 1 was optimized by replacing the direct nested-loop convolution with an im2col-based approach. The goal was to 
+transform the convolution operation into a matrix multiplication to improve data
+locality and computational efficiency during inference.
+
+
+Optimization Applied:
+
+
+The Conv2d forward pass was reimplemented using the im2col algorithm:
+
+1. The input tensor is transformed using im2col, where each sliding kernel window
+   is flattened into a column vector. This converts the input feature map into a
+   matrix of shape (Cin * K * K, Hout * Wout).
+
+2. The convolution kernels are reshaped from their original layout
+   (OC, IC, KH, KW) into a flattened matrix representation of shape
+   (OC, Cin * K * K).
+
+3. The convolution is then computed as a matrix multiplication between the
+   reshaped kernel matrix and the im2col matrix, followed by the addition of the
+   bias term.
+
+4. The resulting matrix is reshaped back into the output tensor format
+   (N, OC, Hout, Wout).
+
+This replaces the deeply nested convolution loops with a structured matrix-based
+computation.
+
+
+Performance Comparison:
+
+Compared to the direct convolution implementation in Task 1, the im2col-based approach reduces the number of nested loops in the convolution operation and improves memory access patterns. 
+This results in a noticeable performance improvement, especially for larger input sizes.
+
+The matrix multiplication is implemented manually using Tensor buffers without relying on external BLAS libraries. 
+While BLAS-based GEMM would provide furtherperformance improvements, it was intentionally not used to keep the implementation self-contained and independent of external dependencies,
+ as permitted by the task description.

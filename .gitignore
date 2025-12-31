@@ -12,9 +12,11 @@ bin/
 
 DATA/
 lenet
+lenet_opti
 *.o
 *.out
 *.gch
+task1.bundle
 
 
 
